@@ -353,11 +353,36 @@ def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
     return issues, positives, summary
 
 
+import base64 as _base64
+
+
 def extract_screenshot(pagespeed: dict) -> str | None:
     try:
         return pagespeed["lighthouseResult"]["audits"]["final-screenshot"]["details"]["data"]
     except (KeyError, TypeError):
-        return None
+        pass
+    try:
+        items = pagespeed["lighthouseResult"]["audits"]["screenshot-thumbnails"]["details"]["items"]
+        if items:
+            return items[-1]["data"]
+    except (KeyError, TypeError):
+        pass
+    return None
+
+
+async def fetch_screenshot_thum(url: str) -> str | None:
+    """Hent screenshot via thum.io (gratis, ingen API-nøgle)."""
+    try:
+        shot_url = f"https://image.thum.io/get/width/1024/crop/768/{url}"
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+            r = await client.get(shot_url)
+            if r.status_code == 200 and "image" in r.headers.get("content-type", ""):
+                ctype = r.headers.get("content-type", "image/jpeg").split(";")[0]
+                b64 = _base64.b64encode(r.content).decode()
+                return f"data:{ctype};base64,{b64}"
+    except Exception:
+        pass
+    return None
 
 
 def assess_design(screenshot_b64: str, domain: str, html: str) -> dict:
@@ -517,15 +542,18 @@ async def analyze_endpoint(req: AnalyzeRequest):
     title_tag = soup.find("title")
     page_title = title_tag.get_text(strip=True) if title_tag else ""
 
-    pagespeed, gbp = await asyncio.gather(
+    pagespeed, gbp, thum_shot = await asyncio.gather(
         get_pagespeed(url),
         get_google_business(domain, page_title),
+        fetch_screenshot_thum(url),
         return_exceptions=True,
     )
     if isinstance(pagespeed, Exception):
         pagespeed = {}
     if isinstance(gbp, Exception):
         gbp = {"found": False}
+    if isinstance(thum_shot, Exception):
+        thum_shot = None
 
     site_result = analyze_website(html, url, pagespeed)
     gbp_issues, gbp_positives, gbp_summary = analyze_gbp(gbp, domain)
@@ -543,8 +571,8 @@ async def analyze_endpoint(req: AnalyzeRequest):
                 )
             break
 
-    # Design-vurdering via Claude vision + PageSpeed screenshot
-    screenshot = extract_screenshot(pagespeed if not isinstance(pagespeed, Exception) else {})
+    # Design-vurdering: brug PageSpeed screenshot, fald tilbage på thum.io
+    screenshot = extract_screenshot(pagespeed) or thum_shot
     design = assess_design(screenshot, domain, html)
 
     phone, sms = build_pitches(

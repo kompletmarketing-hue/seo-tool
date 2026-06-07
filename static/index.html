@@ -166,7 +166,7 @@
           <div id="designVerdict" style="font-size:1.1rem; font-weight:700; margin-bottom:8px;"></div>
           <div id="designIssue" style="font-size:0.88rem; color:#64748b; line-height:1.5;"></div>
         </div>
-        <div style="width:220px; flex-shrink:0; background:#f8fafc; border-left:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+        <div id="designImgWrap" style="width:220px; flex-shrink:0; background:#f8fafc; border-left:1px solid #e2e8f0; display:none; align-items:center; justify-content:center; overflow:hidden;">
           <img id="designScreenshot" src="" alt="Screenshot" style="width:100%; height:140px; object-fit:cover; object-position:top;" />
         </div>
       </div>
@@ -344,6 +344,7 @@
       document.getElementById('designIssue').textContent = design.issue || (isOld ? 'Hjemmesiden trænger til en opdatering.' : 'Designet ser tidssvarende ud.');
       if (design.screenshot) {
         document.getElementById('designScreenshot').src = design.screenshot;
+        document.getElementById('designImgWrap').style.display = 'flex';
       }
     }
 
