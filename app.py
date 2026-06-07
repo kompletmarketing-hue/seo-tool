@@ -481,10 +481,7 @@ def build_pitches(domain: str, company_name: str, site_issues: list, gbp_issues:
     elif gbp_summary.get("status") == "found":
         r = gbp_summary.get("rating", "?")
         rv = gbp_summary.get("reviews", 0)
-        cats = gbp_summary.get("categories", [])
-        cat_count = gbp_summary.get("category_count", 0)
-        cats_str = f" Kategorier: {', '.join(cats[:3])}." if cats else " Ingen kategorier registreret."
-        gbp_context = f"Google Business fundet: {rv} anmeldelser, rating {r}/5.{cats_str} {'Kun ' + str(cat_count) + ' kategori.' if cat_count == 1 else ''}"
+        gbp_context = f"Google Business fundet: {rv} anmeldelser, rating {r}/5."
 
     # Brug firmanavn fra Google Business eller sidetitel, fald tilbage på domæne
     display_name = gbp_summary.get("name") or company_name or domain
