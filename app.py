@@ -296,7 +296,7 @@ def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
     return issues, positives, summary
 
 
-def build_pitches(domain: str, site_issues: list, gbp_issues: list, gbp_summary: dict) -> tuple[str, str]:
+def build_pitches(domain: str, company_name: str, site_issues: list, gbp_issues: list, gbp_summary: dict) -> tuple[str, str]:
     all_issues = gbp_issues[:3] + site_issues[:3]
     top_issues = all_issues[:5]
     issues_text = "\n".join(f"- {i}" for i in top_issues) if top_issues else "Ingen store problemer"
@@ -309,9 +309,12 @@ def build_pitches(domain: str, site_issues: list, gbp_issues: list, gbp_summary:
         rv = gbp_summary.get("reviews", 0)
         gbp_context = f"Google Business fundet: {rv} anmeldelser, rating {r}/5."
 
+    # Brug firmanavn fra Google Business eller sidetitel, fald tilbage på domæne
+    display_name = gbp_summary.get("name") or company_name or domain
+
     prompt = f"""Du er sælger for Håndværkerregistret, som sælger lokal SEO og Google Business-optimering til håndværkere og lokale virksomheder i Danmark.
 
-Du har analyseret: {domain}
+Du har analyseret hjemmesiden for: {display_name} ({domain})
 {gbp_context}
 
 TOP PROBLEMER FUNDET:
@@ -326,7 +329,7 @@ Skriv to ting:
    - Slutte med ét åbent spørgsmål der inviterer til dialog
    - Lyde naturligt og venligt — ikke som en robot eller salgsscript
 
-2. SMS: Max 155 tegn. Kort og direkte. Nævn at vi har kigget på deres side. Ikke spam-agtigt.
+2. SMS: Max 155 tegn. Kort og direkte. Brug firmanavnet "{display_name}" (IKKE domænet/URL). Nævn at vi har kigget på deres hjemmeside. Ikke spam-agtigt.
 
 Format — brug præcis disse overskrifter:
 TELEFON-PITCH:
@@ -384,6 +387,7 @@ async def analyze_endpoint(req: AnalyzeRequest):
 
     phone, sms = build_pitches(
         domain,
+        page_title,
         site_result["issues"],
         gbp_issues,
         gbp_summary,
