@@ -320,11 +320,6 @@
       else chips.push(`<div class="stat-chip bad">📞 Intet telefonnummer</div>`);
       const ph = gbp.photos || 0;
       chips.push(`<div class="stat-chip ${ph>=5?'good':ph>=1?'warn':'bad'}">📷 ${ph} billede${ph===1?'':'r'}</div>`);
-      if (gbp.category_count !== undefined) {
-        const cats = gbp.categories || [];
-        const catStr = cats.slice(0,2).join(', ') || '—';
-        chips.push(`<div class="stat-chip ${gbp.category_count>=2?'good':gbp.category_count===1?'warn':'bad'}">🏷️ ${gbp.category_count} kategori${gbp.category_count===1?'':'er'}: ${catStr}</div>`);
-      }
       gbpStats.innerHTML = chips.join('');
     }
 

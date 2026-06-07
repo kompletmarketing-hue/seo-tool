@@ -325,30 +325,18 @@ def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
     if gbp_website and clean_domain not in gbp_website:
         issues.append("Hjemmesiden på Google Business matcher ikke den analyserede URL")
 
-    # Kategorier / ydelser på GBP
+    # Kategorier: Places API returnerer Googles interne typer, ikke ejerens kategorier.
+    # Vi viser hvad vi finder, men flagger det ikke som fejl — det kræver manuel GBP-tjek.
     types = gbp.get("types", [])
     ignore_types = {"point_of_interest", "establishment", "business", "local_government_office"}
     real_types = [t for t in types if t not in ignore_types]
     translated = [TYPES_DA.get(t) for t in real_types if TYPES_DA.get(t)]
+    summary["categories"] = translated if translated else []
+    summary["category_count"] = len(translated)
 
-    if not real_types:
-        issues.append("Google Business har ingen kategorier registreret — afgørende for at dukke op i lokale søgninger")
-    elif len(real_types) == 1:
-        cat = translated[0] if translated else real_types[0]
-        issues.append(f"Google Business har kun én kategori ({cat}) — tilføj underkategorier for at fange flere søgninger")
-    else:
-        cats = ", ".join(translated[:3]) if translated else ", ".join(real_types[:3])
-        positives.append(f"Google Business kategorier: {cats}")
-
-    summary["categories"] = translated if translated else real_types
-    summary["category_count"] = len(real_types)
-
-    # Beskrivelse
-    desc = gbp.get("editorial_summary", {}).get("overview", "")
-    if not desc:
-        issues.append("Ingen beskrivelse på Google Business — en god beskrivelse øger synlighed og konvertering")
-    else:
-        positives.append("Har beskrivelse på Google Business")
+    # Anbefalinger vi altid kan give (uanset hvad Places API siger)
+    issues.append("Tjek at alle jeres ydelser er listet som underkategorier i Google Business — de fleste har kun én")
+    issues.append("Tjek at jeres Google Business-beskrivelse er udfyldt med lokale søgeord og ydelser")
 
     return issues, positives, summary
 
