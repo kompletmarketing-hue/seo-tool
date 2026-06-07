@@ -230,23 +230,39 @@ def analyze_website(html: str, url: str, pagespeed: dict) -> dict:
     except (KeyError, TypeError):
         pass
 
-    # Ydelsessider i navigationen
+    # Ydelsesindhold — tjek både URL-stier og sidens overskrifter/tekst
     nav = soup.find("nav") or soup.find("header")
     nav_links = []
     if nav:
         nav_links = [a.get("href", "").lower() for a in nav.find_all("a")]
     all_links = [a.get("href", "").lower() for a in soup.find_all("a")]
 
-    service_slugs = ["ydelse", "service", "hvad-vi", "løsning", "produkt", "behandling", "tilbud", "arbejde"]
-    has_service_page = any(
+    # 1) Link-stier der indikerer en ydelsesside
+    service_slugs = ["ydelse", "service", "hvad-vi", "løsning", "produkt",
+                     "behandling", "tilbud", "arbejde", "opgave", "pris", "pakke"]
+    has_service_link = any(
         any(s in link for s in service_slugs)
-        for link in all_links
-        if link
+        for link in all_links if link
     )
-    if has_service_page:
-        positives.append("Har dedikeret ydelsesside på hjemmesiden")
+
+    # 2) Overskrifter (H2/H3) der beskriver ydelser
+    headings = [h.get_text(strip=True).lower() for h in soup.find_all(["h2", "h3", "h4"])]
+    service_heading_words = ["ydelse", "service", "tilbyder", "udfører", "rengøring",
+                             "maler", "vvs", "el-", "tømrer", "pakke", "pris", "løsning"]
+    has_service_heading = any(
+        any(w in h for w in service_heading_words)
+        for h in headings
+    )
+
+    # 3) Lister med ydelser (ul/ol med mindst 3 punkter nær relevante overskrifter)
+    lists = soup.find_all(["ul", "ol"])
+    has_service_list = any(len(ul.find_all("li")) >= 3 for ul in lists)
+
+    has_services = has_service_link or has_service_heading or has_service_list
+    if has_services:
+        positives.append("Ydelser præsenteret på hjemmesiden")
     else:
-        issues.append("Ingen ydelsesside fundet — besøgende ved ikke hvad I tilbyder")
+        issues.append("Ingen tydelig ydelsessektion fundet — besøgende ved ikke hvad I tilbyder")
 
     return {"issues": issues, "positives": positives, "title": title_text, "nav_links": nav_links, "all_links": all_links}
 
