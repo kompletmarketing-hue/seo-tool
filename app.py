@@ -350,9 +350,12 @@ def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
     summary["categories"] = translated if translated else []
     summary["category_count"] = len(translated)
 
-    # Anbefalinger vi altid kan give (uanset hvad Places API siger)
-    issues.append("Tjek at alle jeres ydelser er listet som underkategorier i Google Business — de fleste har kun én")
-    issues.append("Tjek at jeres Google Business-beskrivelse er udfyldt med lokale søgeord og ydelser")
+    # Generelle tips til GBP — vises i UI men bruges ikke i pitch
+    summary["gbp_tips"] = [
+        "Har I tilføjet alle ydelser som underkategorier i Google Business?",
+        "Er jeres Google Business-beskrivelse udfyldt med lokale søgeord og ydelser?",
+        "Svarer I aktivt på jeres Google-anmeldelser?",
+    ]
 
     return issues, positives, summary
 
