@@ -353,8 +353,93 @@ def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
     return issues, positives, summary
 
 
-def build_pitches(domain: str, company_name: str, site_issues: list, gbp_issues: list, gbp_summary: dict) -> tuple[str, str]:
-    all_issues = gbp_issues[:3] + site_issues[:3]
+def extract_screenshot(pagespeed: dict) -> str | None:
+    try:
+        return pagespeed["lighthouseResult"]["audits"]["final-screenshot"]["details"]["data"]
+    except (KeyError, TypeError):
+        return None
+
+
+def assess_design(screenshot_b64: str, domain: str, html: str) -> dict:
+    """Brug Claude vision til at vurdere hjemmesidens design og alder."""
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Tekniske alderstegn
+    age_signals = []
+    copyright_match = re.search(r"©\s*(\d{4})", html) or re.search(r"copyright\s*(\d{4})", html, re.I)
+    if copyright_match:
+        year = int(copyright_match.group(1))
+        if year < 2018:
+            age_signals.append(f"Copyright-år: {year}")
+
+    if soup.find("table") and not soup.find("meta", attrs={"name": re.compile("viewport", re.I)}):
+        age_signals.append("Tabel-baseret layout")
+    if soup.find("frameset") or soup.find("frame"):
+        age_signals.append("Bruger frames (meget gammelt)")
+    if "flash" in html.lower() or ".swf" in html.lower():
+        age_signals.append("Indeholder Flash-elementer")
+    fixed_widths = re.findall(r'width\s*[:=]\s*["\']?\s*(\d{3,4})\s*px', html)
+    if any(int(w) > 900 for w in fixed_widths[:10]):
+        age_signals.append("Faste pixel-bredder (ikke responsivt)")
+
+    if not screenshot_b64:
+        verdict = "Kunne ikke vurdere visuelt design"
+        design_issue = None
+        if age_signals:
+            design_issue = f"Tekniske tegn på forældet hjemmeside: {', '.join(age_signals)}"
+        return {"verdict": verdict, "issue": design_issue, "screenshot": None}
+
+    # Send screenshot til Claude vision
+    try:
+        age_context = f"\n\nTekniske alderstegn fundet: {', '.join(age_signals)}" if age_signals else ""
+        msg = get_ai_client().messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=300,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": "image/jpeg", "data": screenshot_b64.split(",")[-1]},
+                    },
+                    {
+                        "type": "text",
+                        "text": f"""Dette er et screenshot af hjemmesiden {domain}.{age_context}
+
+Vurder kort:
+1. Ser designet gammelt/forældet ud? Angiv ca. årstal for designet (f.eks. "tidlig 2010'er", "ca. 2015", "moderne").
+2. Er det visuelt tiltalende og professionelt?
+3. Skriv ét kort sætning (max 20 ord) som en sælger kan bruge i et pitch om at siden trænger til en ny hjemmeside.
+
+Svar i præcis dette format:
+ÅRSTAL: [ca. årstal eller periode]
+VURDERING: [god/okay/forældet/meget forældet]
+PITCH-LINJE: [én sætning]"""
+                    }
+                ]
+            }],
+        )
+        raw = msg.content[0].text
+        verdict = "Forældet design"
+        pitch_line = None
+        for line in raw.splitlines():
+            if line.startswith("VURDERING:"):
+                verdict = line.replace("VURDERING:", "").strip()
+            if line.startswith("PITCH-LINJE:"):
+                pitch_line = line.replace("PITCH-LINJE:", "").strip()
+            if line.startswith("ÅRSTAL:"):
+                year_str = line.replace("ÅRSTAL:", "").strip()
+                verdict = f"{verdict} ({year_str})"
+
+        design_issue = pitch_line if pitch_line and "forældet" in verdict.lower() else None
+        return {"verdict": verdict, "issue": design_issue, "screenshot": screenshot_b64}
+    except Exception:
+        return {"verdict": "Kunne ikke vurdere", "issue": None, "screenshot": screenshot_b64}
+
+
+def build_pitches(domain: str, company_name: str, site_issues: list, gbp_issues: list, gbp_summary: dict, design_issue: str | None = None) -> tuple[str, str]:
+    design_issues = [design_issue] if design_issue else []
+    all_issues = design_issues + gbp_issues[:2] + site_issues[:3]
     top_issues = all_issues[:5]
     issues_text = "\n".join(f"- {i}" for i in top_issues) if top_issues else "Ingen store problemer"
 
@@ -458,12 +543,17 @@ async def analyze_endpoint(req: AnalyzeRequest):
                 )
             break
 
+    # Design-vurdering via Claude vision + PageSpeed screenshot
+    screenshot = extract_screenshot(pagespeed if not isinstance(pagespeed, Exception) else {})
+    design = assess_design(screenshot, domain, html)
+
     phone, sms = build_pitches(
         domain,
         page_title,
         site_result["issues"],
         gbp_issues,
         gbp_summary,
+        design_issue=design.get("issue"),
     )
 
     return {
@@ -474,6 +564,7 @@ async def analyze_endpoint(req: AnalyzeRequest):
         "gbp_issues": gbp_issues,
         "gbp_positives": gbp_positives,
         "gbp_summary": gbp_summary,
+        "design": design,
         "phone_pitch": phone,
         "sms_pitch": sms,
     }

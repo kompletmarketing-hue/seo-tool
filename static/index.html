@@ -158,6 +158,20 @@
   <div class="results" id="results">
     <div class="domain-badge" id="domainBadge"></div>
 
+    <!-- Design preview -->
+    <div id="designCard" style="display:none; background:white; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.07); margin-bottom:16px; overflow:hidden;">
+      <div style="display:flex; gap:0; align-items:stretch;">
+        <div style="flex:1; padding:20px 24px;">
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; margin-bottom:8px;">🖥️ Design-vurdering</div>
+          <div id="designVerdict" style="font-size:1.1rem; font-weight:700; margin-bottom:8px;"></div>
+          <div id="designIssue" style="font-size:0.88rem; color:#64748b; line-height:1.5;"></div>
+        </div>
+        <div style="width:220px; flex-shrink:0; background:#f8fafc; border-left:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+          <img id="designScreenshot" src="" alt="Screenshot" style="width:100%; height:140px; object-fit:cover; object-position:top;" />
+        </div>
+      </div>
+    </div>
+
     <div class="gbp-card" id="gbpCard">
       <div class="gbp-header">
         <div class="gbp-icon" id="gbpIcon"></div>
@@ -318,6 +332,21 @@
     const allPositives = [...data.gbp_positives, ...data.site_positives];
     renderList('siteIssuesList', allIssues, 'issues');
     renderList('sitePositivesList', allPositives, 'positives');
+    // Design-kort
+    const design = data.design;
+    if (design) {
+      const card = document.getElementById('designCard');
+      card.style.display = 'block';
+      const verdict = design.verdict || '';
+      const isOld = verdict.toLowerCase().includes('forældet') || verdict.toLowerCase().includes('gammel');
+      document.getElementById('designVerdict').textContent = verdict;
+      document.getElementById('designVerdict').style.color = isOld ? '#dc2626' : '#16a34a';
+      document.getElementById('designIssue').textContent = design.issue || (isOld ? 'Hjemmesiden trænger til en opdatering.' : 'Designet ser tidssvarende ud.');
+      if (design.screenshot) {
+        document.getElementById('designScreenshot').src = design.screenshot;
+      }
+    }
+
     document.getElementById('phonePitchText').textContent = data.phone_pitch;
     document.getElementById('smsPitchText').textContent = data.sms_pitch;
     updateSmsCounter(data.sms_pitch);
