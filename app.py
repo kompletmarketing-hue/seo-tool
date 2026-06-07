@@ -26,8 +26,22 @@ def get_ai_client():
 PLACE_FIELDS = (
     "name,rating,user_ratings_total,opening_hours,"
     "formatted_phone_number,website,formatted_address,"
-    "photos,business_status"
+    "photos,business_status,types,editorial_summary"
 )
+
+# Oversættelse af Google Places typer til dansk
+TYPES_DA = {
+    "plumber": "VVS/blikkenslager", "electrician": "elektriker",
+    "roofing_contractor": "tagdækker", "painter": "maler",
+    "general_contractor": "entreprenør/håndværker", "carpenter": "tømrer",
+    "flooring_contractor": "gulvlægger", "hvac_contractor": "varmetekniker",
+    "landscaper": "anlægsgartner", "locksmith": "låsesmed",
+    "moving_company": "flyttefirma", "cleaning_service": "rengøring",
+    "window_installation_service": "vinduesmontering",
+    "masonry_contractor": "murermester", "demolition_contractor": "nedrivning",
+    "insulation_contractor": "isolering", "fence_contractor": "hegn",
+    "swimming_pool_contractor": "pool/spa", "solar_energy_contractor": "solceller",
+}
 
 
 class AnalyzeRequest(BaseModel):
@@ -216,7 +230,25 @@ def analyze_website(html: str, url: str, pagespeed: dict) -> dict:
     except (KeyError, TypeError):
         pass
 
-    return {"issues": issues, "positives": positives, "title": title_text}
+    # Ydelsessider i navigationen
+    nav = soup.find("nav") or soup.find("header")
+    nav_links = []
+    if nav:
+        nav_links = [a.get("href", "").lower() for a in nav.find_all("a")]
+    all_links = [a.get("href", "").lower() for a in soup.find_all("a")]
+
+    service_slugs = ["ydelse", "service", "hvad-vi", "løsning", "produkt", "behandling", "tilbud", "arbejde"]
+    has_service_page = any(
+        any(s in link for s in service_slugs)
+        for link in all_links
+        if link
+    )
+    if has_service_page:
+        positives.append("Har dedikeret ydelsesside på hjemmesiden")
+    else:
+        issues.append("Ingen ydelsesside fundet — besøgende ved ikke hvad I tilbyder")
+
+    return {"issues": issues, "positives": positives, "title": title_text, "nav_links": nav_links, "all_links": all_links}
 
 
 def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
@@ -293,6 +325,31 @@ def analyze_gbp(gbp: dict, domain: str) -> tuple[list, list, dict]:
     if gbp_website and clean_domain not in gbp_website:
         issues.append("Hjemmesiden på Google Business matcher ikke den analyserede URL")
 
+    # Kategorier / ydelser på GBP
+    types = gbp.get("types", [])
+    ignore_types = {"point_of_interest", "establishment", "business", "local_government_office"}
+    real_types = [t for t in types if t not in ignore_types]
+    translated = [TYPES_DA.get(t) for t in real_types if TYPES_DA.get(t)]
+
+    if not real_types:
+        issues.append("Google Business har ingen kategorier registreret — afgørende for at dukke op i lokale søgninger")
+    elif len(real_types) == 1:
+        cat = translated[0] if translated else real_types[0]
+        issues.append(f"Google Business har kun én kategori ({cat}) — tilføj underkategorier for at fange flere søgninger")
+    else:
+        cats = ", ".join(translated[:3]) if translated else ", ".join(real_types[:3])
+        positives.append(f"Google Business kategorier: {cats}")
+
+    summary["categories"] = translated if translated else real_types
+    summary["category_count"] = len(real_types)
+
+    # Beskrivelse
+    desc = gbp.get("editorial_summary", {}).get("overview", "")
+    if not desc:
+        issues.append("Ingen beskrivelse på Google Business — en god beskrivelse øger synlighed og konvertering")
+    else:
+        positives.append("Har beskrivelse på Google Business")
+
     return issues, positives, summary
 
 
@@ -307,7 +364,10 @@ def build_pitches(domain: str, company_name: str, site_issues: list, gbp_issues:
     elif gbp_summary.get("status") == "found":
         r = gbp_summary.get("rating", "?")
         rv = gbp_summary.get("reviews", 0)
-        gbp_context = f"Google Business fundet: {rv} anmeldelser, rating {r}/5."
+        cats = gbp_summary.get("categories", [])
+        cat_count = gbp_summary.get("category_count", 0)
+        cats_str = f" Kategorier: {', '.join(cats[:3])}." if cats else " Ingen kategorier registreret."
+        gbp_context = f"Google Business fundet: {rv} anmeldelser, rating {r}/5.{cats_str} {'Kun ' + str(cat_count) + ' kategori.' if cat_count == 1 else ''}"
 
     # Brug firmanavn fra Google Business eller sidetitel, fald tilbage på domæne
     display_name = gbp_summary.get("name") or company_name or domain
@@ -384,6 +444,19 @@ async def analyze_endpoint(req: AnalyzeRequest):
 
     site_result = analyze_website(html, url, pagespeed)
     gbp_issues, gbp_positives, gbp_summary = analyze_gbp(gbp, domain)
+
+    # Krydstjek: er GMB-kategorier repræsenteret på hjemmesiden?
+    page_text_lower = BeautifulSoup(html, "html.parser").get_text(" ").lower()
+    all_links = site_result.get("all_links", [])
+    for cat_type, cat_da in TYPES_DA.items():
+        if cat_type in gbp.get("types", []):
+            keyword = cat_da.split("/")[0].lower()
+            on_site = keyword in page_text_lower or any(keyword in l for l in all_links)
+            if not on_site:
+                gbp_issues.append(
+                    f"Google Business viser jer som '{cat_da}', men der er ingen tilsvarende indhold/side på hjemmesiden"
+                )
+            break
 
     phone, sms = build_pitches(
         domain,
