@@ -14,8 +14,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
-ai = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 GMAPS_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+
+
+def get_ai_client():
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY mangler — tjek Railway Variables")
+    return anthropic.Anthropic(api_key=key)
 
 PLACE_FIELDS = (
     "name,rating,user_ratings_total,opening_hours,"
@@ -329,7 +335,7 @@ TELEFON-PITCH:
 SMS:
 [tekst]"""
 
-    msg = ai.messages.create(
+    msg = get_ai_client().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=800,
         messages=[{"role": "user", "content": prompt}],
