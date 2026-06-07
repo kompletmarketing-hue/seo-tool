@@ -479,6 +479,72 @@ async def analyze_endpoint(req: AnalyzeRequest):
     }
 
 
+class LeadRequest(BaseModel):
+    service: str
+    location: str
+
+
+@app.post("/find-leads")
+async def find_leads(req: LeadRequest):
+    if not GMAPS_KEY:
+        raise HTTPException(status_code=500, detail="GOOGLE_MAPS_API_KEY mangler")
+
+    query = f"{req.service} i {req.location}"
+    leads = []
+    next_page_token = None
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        # Hent op til 60 resultater (3 sider à 20)
+        for _ in range(3):
+            params = {"query": query, "key": GMAPS_KEY, "language": "da"}
+            if next_page_token:
+                params = {"pagetoken": next_page_token, "key": GMAPS_KEY}
+
+            r = await client.get(
+                "https://maps.googleapis.com/maps/api/place/textsearch/json",
+                params=params,
+            )
+            data = r.json()
+            results = data.get("results", [])
+
+            for place in results:
+                pid = place["place_id"]
+                det_r = await client.get(
+                    "https://maps.googleapis.com/maps/api/place/details/json",
+                    params={
+                        "place_id": pid,
+                        "fields": "name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,business_status",
+                        "key": GMAPS_KEY,
+                        "language": "da",
+                    },
+                )
+                det = det_r.json().get("result", {})
+
+                if det.get("business_status") == "CLOSED_PERMANENTLY":
+                    continue
+
+                has_website = bool(det.get("website"))
+                leads.append({
+                    "name": det.get("name", place.get("name", "")),
+                    "address": det.get("formatted_address", ""),
+                    "phone": det.get("formatted_phone_number", ""),
+                    "website": det.get("website", ""),
+                    "has_website": has_website,
+                    "rating": det.get("rating"),
+                    "reviews": det.get("user_ratings_total", 0),
+                })
+
+            next_page_token = data.get("next_page_token")
+            if not next_page_token:
+                break
+            # Google kræver kort pause før næste side
+            await asyncio.sleep(2)
+
+    # Sorter: ingen hjemmeside først, derefter få anmeldelser
+    leads.sort(key=lambda x: (x["has_website"], -x["reviews"] if x["has_website"] else 0))
+    return {"leads": leads, "total": len(leads), "no_website": sum(1 for l in leads if not l["has_website"])}
+
+
 @app.get("/health")
 async def health():
     return {

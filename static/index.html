@@ -6,261 +6,118 @@
   <title>SEO Analyse — Håndværkerregistret</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #1a1a2e; min-height: 100vh; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f4f6f9;
-      color: #1a1a2e;
-      min-height: 100vh;
-    }
-
-    header {
-      background: #1a1a2e;
-      color: white;
-      padding: 20px 24px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    header .logo {
-      width: 42px; height: 42px;
-      background: #f59e0b;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-    }
+    header { background: #1a1a2e; color: white; padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+    header .logo { width: 42px; height: 42px; background: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
     header h1 { font-size: 1.2rem; font-weight: 700; }
     header p { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
 
+    /* Tabs */
+    .tabs { background: #1a1a2e; padding: 0 24px; display: flex; gap: 4px; }
+    .tab { padding: 12px 20px; color: #94a3b8; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+    .tab:hover { color: white; }
+    .tab.active { color: #f59e0b; border-bottom-color: #f59e0b; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
     .container { max-width: 860px; margin: 0 auto; padding: 32px 16px; }
 
-    .search-card {
-      background: white;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      margin-bottom: 28px;
-    }
+    .search-card { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 28px; }
     .search-card h2 { font-size: 1.35rem; margin-bottom: 6px; }
     .search-card p { color: #64748b; font-size: 0.9rem; margin-bottom: 22px; }
 
     .input-row { display: flex; gap: 10px; }
-    .input-row input {
-      flex: 1;
-      padding: 14px 16px;
-      border: 2px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
+    .input-row input { flex: 1; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
     .input-row input:focus { border-color: #f59e0b; }
     .input-row input::placeholder { color: #94a3b8; }
 
-    .btn {
-      padding: 14px 28px;
-      background: #f59e0b;
-      color: white;
-      font-weight: 700;
-      font-size: 1rem;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      white-space: nowrap;
-    }
+    .btn { padding: 14px 28px; background: #f59e0b; color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s, transform 0.1s; white-space: nowrap; }
     .btn:hover { background: #d97706; }
     .btn:active { transform: scale(0.98); }
     .btn:disabled { background: #fcd34d; cursor: not-allowed; }
+    .btn.blue { background: #2563eb; }
+    .btn.blue:hover { background: #1d4ed8; }
+    .btn.blue:disabled { background: #93c5fd; }
 
     .loader { display: none; text-align: center; padding: 48px 0; }
     .loader.active { display: block; }
-    .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid #e2e8f0;
-      border-top-color: #f59e0b;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
-    }
+    .spinner { width: 48px; height: 48px; border: 4px solid #e2e8f0; border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader p { color: #64748b; font-size: 0.95rem; }
 
-    .error-box {
-      display: none;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      border-radius: 10px;
-      padding: 16px 20px;
-      color: #dc2626;
-      margin-top: 16px;
-      font-size: 0.9rem;
-    }
+    .error-box { display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 16px 20px; color: #dc2626; margin-top: 16px; font-size: 0.9rem; }
     .error-box.active { display: block; }
 
     .results { display: none; }
     .results.active { display: block; }
 
-    .domain-badge {
-      display: inline-block;
-      background: #1a1a2e;
-      color: white;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 20px;
-    }
+    .domain-badge { display: inline-block; background: #1a1a2e; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; }
 
-    /* Google Business card */
-    .gbp-card {
-      background: white;
-      border-radius: 14px;
-      padding: 22px 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      margin-bottom: 16px;
-    }
-    .gbp-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .gbp-icon {
-      width: 40px; height: 40px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      flex-shrink: 0;
-    }
+    /* GBP card */
+    .gbp-card { background: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 16px; }
+    .gbp-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .gbp-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
     .gbp-icon.found { background: #f0fdf4; }
     .gbp-icon.not-found { background: #fef2f2; }
     .gbp-title { font-weight: 700; font-size: 1rem; }
     .gbp-subtitle { font-size: 0.82rem; color: #64748b; margin-top: 2px; }
-
-    .gbp-stats {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    .stat-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
+    .gbp-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .stat-chip { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
     .stat-chip.good { background: #f0fdf4; color: #16a34a; }
     .stat-chip.warn { background: #fffbeb; color: #d97706; }
     .stat-chip.bad  { background: #fef2f2; color: #dc2626; }
     .stat-chip.grey { background: #f8fafc; color: #64748b; }
-
     .stars { color: #f59e0b; letter-spacing: -1px; }
+    .gbp-not-found-banner { background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 10px; padding: 14px 18px; color: #dc2626; font-size: 0.9rem; font-weight: 600; }
 
-    .gbp-not-found-banner {
-      background: #fef2f2;
-      border: 1.5px solid #fecaca;
-      border-radius: 10px;
-      padding: 14px 18px;
-      color: #dc2626;
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
-    /* Issues / Positives grid */
+    /* Issues grid */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    @media (max-width: 620px) {
-      .grid { grid-template-columns: 1fr; }
-      .input-row { flex-direction: column; }
-      .gbp-stats { gap: 8px; }
-    }
-
-    .card {
-      background: white;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    }
-    .card h3 {
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
+    @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } .input-row { flex-direction: column; } .gbp-stats { gap: 8px; } }
+    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .card h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
     .card.issues h3 { color: #dc2626; }
     .card.positives h3 { color: #16a34a; }
-
-    .item {
-      display: flex;
-      gap: 9px;
-      padding: 8px 0;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 0.86rem;
-      line-height: 1.5;
-    }
+    .item { display: flex; gap: 9px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.86rem; line-height: 1.5; }
     .item:last-child { border-bottom: none; }
     .item .dot { flex-shrink: 0; margin-top: 2px; }
     .card.issues .dot { color: #dc2626; }
     .card.positives .dot { color: #16a34a; }
 
     /* Pitch cards */
-    .pitch-card {
-      background: white;
-      border-radius: 14px;
-      padding: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      margin-bottom: 16px;
-    }
-    .pitch-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .pitch-header h3 {
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
+    .pitch-card { background: white; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 16px; }
+    .pitch-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .pitch-header h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 7px; }
     .pitch-header h3.phone { color: #2563eb; }
     .pitch-header h3.sms   { color: #7c3aed; }
-
-    .copy-btn {
-      padding: 7px 14px;
-      border: 1.5px solid #e2e8f0;
-      background: white;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+    .copy-btn { padding: 7px 14px; border: 1.5px solid #e2e8f0; background: white; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s; }
     .copy-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
     .copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
-
-    .pitch-text {
-      background: #f8fafc;
-      border-radius: 10px;
-      padding: 16px;
-      font-size: 0.93rem;
-      line-height: 1.75;
-      color: #334155;
-      white-space: pre-wrap;
-    }
+    .pitch-text { background: #f8fafc; border-radius: 10px; padding: 16px; font-size: 0.93rem; line-height: 1.75; color: #334155; white-space: pre-wrap; }
     .sms-counter { text-align: right; font-size: 0.78rem; color: #94a3b8; margin-top: 8px; }
     .sms-counter.over { color: #dc2626; }
+
+    /* Leads tabel */
+    .leads-summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .leads-stat { background: white; border-radius: 10px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .leads-stat .num { font-size: 1.8rem; font-weight: 800; }
+    .leads-stat .lbl { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .leads-stat.red .num { color: #dc2626; }
+    .leads-stat.green .num { color: #16a34a; }
+
+    .leads-table-wrap { background: white; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 12px 16px; font-size: 0.88rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .badge.no-web { background: #fef2f2; color: #dc2626; }
+    .badge.has-web { background: #f0fdf4; color: #16a34a; }
+    .phone-link { color: #2563eb; text-decoration: none; font-weight: 600; }
+    .phone-link:hover { text-decoration: underline; }
+    .no-leads { text-align: center; padding: 40px; color: #94a3b8; }
   </style>
 </head>
 <body>
@@ -273,13 +130,20 @@
   </div>
 </header>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('analyse')">🔍 Analysér hjemmeside</div>
+  <div class="tab" onclick="switchTab('leads')">🎯 Find kundeemner</div>
+</div>
+
+<!-- TAB 1: ANALYSÉR -->
+<div class="tab-panel active" id="panel-analyse">
 <div class="container">
 
   <div class="search-card">
     <h2>Analysér en potentiel kundes hjemmeside</h2>
     <p>Vi finder SEO-svagheder og Google Business-problemer — og skriver dit salgspitch automatisk.</p>
     <div class="input-row">
-      <input type="text" id="urlInput" placeholder="eks. snekkersmed.dk eller https://www.maler-hansen.dk" autocomplete="off" />
+      <input type="text" id="urlInput" placeholder="eks. snekkersmed.dk" autocomplete="off" />
       <button class="btn" id="analyzeBtn" onclick="runAnalysis()">Analysér</button>
     </div>
     <div class="error-box" id="errorBox"></div>
@@ -294,7 +158,6 @@
   <div class="results" id="results">
     <div class="domain-badge" id="domainBadge"></div>
 
-    <!-- Google Business Panel -->
     <div class="gbp-card" id="gbpCard">
       <div class="gbp-header">
         <div class="gbp-icon" id="gbpIcon"></div>
@@ -309,10 +172,9 @@
       <div class="gbp-stats" id="gbpStats"></div>
     </div>
 
-    <!-- SEO Issues / Positives -->
     <div class="grid">
       <div class="card issues">
-        <h3>⚠️ SEO-problemer</h3>
+        <h3>⚠️ Problemer fundet</h3>
         <div id="siteIssuesList"></div>
       </div>
       <div class="card positives">
@@ -321,7 +183,6 @@
       </div>
     </div>
 
-    <!-- Pitches -->
     <div class="pitch-card">
       <div class="pitch-header">
         <h3 class="phone">📞 Telefon-pitch</h3>
@@ -341,54 +202,81 @@
   </div>
 
 </div>
+</div>
+
+<!-- TAB 2: FIND KUNDEEMNER -->
+<div class="tab-panel" id="panel-leads">
+<div class="container">
+
+  <div class="search-card">
+    <h2>Find kundeemner uden hjemmeside</h2>
+    <p>Søg efter virksomheder i en branche og by — vi finder dem der ikke har en hjemmeside på Google Business.</p>
+    <div class="input-row">
+      <input type="text" id="serviceInput" placeholder="Fag — eks. maler, VVS, elektriker, tømrer" autocomplete="off" style="flex:1.5" />
+      <input type="text" id="locationInput" placeholder="By — eks. Aarhus, Odense, København" autocomplete="off" />
+      <button class="btn blue" id="leadsBtn" onclick="runLeads()">Søg</button>
+    </div>
+    <div class="error-box" id="leadsErrorBox"></div>
+  </div>
+
+  <div class="loader" id="leadsLoader">
+    <div class="spinner" style="border-top-color:#2563eb"></div>
+    <p>Søger efter virksomheder på Google...<br>
+    <small style="color:#94a3b8">Henter op til 60 resultater — tager 15-30 sekunder</small></p>
+  </div>
+
+  <div class="results" id="leadsResults">
+    <div class="leads-summary" id="leadsSummary"></div>
+    <div class="leads-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Virksomhed</th>
+            <th>Adresse</th>
+            <th>Telefon</th>
+            <th>Anmeldelser</th>
+            <th>Hjemmeside</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
 
 <script>
-  document.getElementById('urlInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') runAnalysis();
-  });
+  // Tab-skift
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['analyse','leads'][i] === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
 
+  // Enter-tast
+  document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') runAnalysis(); });
+  document.getElementById('locationInput').addEventListener('keydown', e => { if (e.key === 'Enter') runLeads(); });
+  document.getElementById('serviceInput').addEventListener('keydown', e => { if (e.key === 'Enter') runLeads(); });
+
+  // ---- ANALYSE ----
   async function runAnalysis() {
     const url = document.getElementById('urlInput').value.trim();
-    if (!url) { showError('Indsæt venligst en URL.'); return; }
-    setLoading(true);
-    hideError();
-    hideResults();
+    if (!url) { showError('errorBox', 'Indsæt venligst en URL.'); return; }
+    setLoading('loader', 'analyzeBtn', true, 'Analyserer...');
+    hideError('errorBox');
+    hideResults('results');
     try {
-      const res = await fetch('/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
-      });
+      const res = await fetch('/analyze', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({url}) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Ukendt fejl');
-      showResults(data);
-    } catch (err) {
-      showError(err.message);
-    } finally {
-      setLoading(false);
-    }
+      showAnalysisResults(data);
+    } catch(err) { showError('errorBox', err.message); }
+    finally { setLoading('loader', 'analyzeBtn', false, 'Analysér'); }
   }
 
-  function renderList(containerId, items, cardClass) {
-    const el = document.getElementById(containerId);
-    el.innerHTML = items.length
-      ? items.map(i => `<div class="item"><span class="dot">${cardClass === 'issues' ? '✕' : '✓'}</span><span>${i}</span></div>`).join('')
-      : `<div class="item"><span>${cardClass === 'issues' ? 'Ingen problemer fundet' : 'Ingen noteret'}</span></div>`;
-  }
-
-  function starsHtml(rating) {
-    const full = Math.round(rating);
-    return '★'.repeat(full) + '☆'.repeat(5 - full);
-  }
-
-  function chipClass(type) {
-    return { good: 'good', warn: 'warn', bad: 'bad', grey: 'grey' }[type] || 'grey';
-  }
-
-  function showResults(data) {
+  function showAnalysisResults(data) {
     document.getElementById('domainBadge').textContent = '🌐 ' + data.domain;
-
-    // Google Business panel
     const gbp = data.gbp_summary;
     const gbpIcon = document.getElementById('gbpIcon');
     const gbpTitle = document.getElementById('gbpTitle');
@@ -397,95 +285,124 @@
     const gbpNotFound = document.getElementById('gbpNotFound');
 
     if (gbp.status === 'not_found') {
-      gbpIcon.className = 'gbp-icon not-found';
-      gbpIcon.textContent = '✕';
+      gbpIcon.className = 'gbp-icon not-found'; gbpIcon.textContent = '✕';
       gbpTitle.textContent = 'Ingen Google Business Profil';
       gbpSubtitle.textContent = 'Virksomheden er ikke synlig på Google Maps';
-      gbpNotFound.style.display = 'block';
-      gbpStats.innerHTML = '';
+      gbpNotFound.style.display = 'block'; gbpStats.innerHTML = '';
     } else {
-      gbpIcon.className = 'gbp-icon found';
-      gbpIcon.textContent = '✓';
+      gbpIcon.className = 'gbp-icon found'; gbpIcon.textContent = '✓';
       gbpTitle.textContent = gbp.name || 'Google Business Profil fundet';
       gbpSubtitle.textContent = gbp.address || '';
       gbpNotFound.style.display = 'none';
-
       const chips = [];
-
-      // Rating
       if (gbp.rating != null) {
         const cls = gbp.rating >= 4.2 ? 'good' : gbp.rating >= 3.5 ? 'warn' : 'bad';
         chips.push(`<div class="stat-chip ${cls}"><span class="stars">${starsHtml(gbp.rating)}</span> ${gbp.rating}/5</div>`);
       }
-
-      // Reviews
       const rv = gbp.reviews || 0;
-      const rvCls = rv >= 20 ? 'good' : rv >= 5 ? 'warn' : 'bad';
-      chips.push(`<div class="stat-chip ${rvCls}">💬 ${rv} anmeldelse${rv === 1 ? '' : 'r'}</div>`);
-
-      // Hours
-      chips.push(`<div class="stat-chip ${gbp.has_hours ? 'good' : 'bad'}">🕐 Åbningstider: ${gbp.has_hours ? 'Udfyldt' : 'Mangler'}</div>`);
-
-      // Phone
-      if (gbp.phone) {
-        chips.push(`<div class="stat-chip good">📞 ${gbp.phone}</div>`);
-      } else {
-        chips.push(`<div class="stat-chip bad">📞 Intet telefonnummer</div>`);
-      }
-
-      // Photos
+      chips.push(`<div class="stat-chip ${rv>=20?'good':rv>=5?'warn':'bad'}">💬 ${rv} anmeldelse${rv===1?'':'r'}</div>`);
+      chips.push(`<div class="stat-chip ${gbp.has_hours?'good':'bad'}">🕐 Åbningstider: ${gbp.has_hours?'Udfyldt':'Mangler'}</div>`);
+      if (gbp.phone) chips.push(`<div class="stat-chip good">📞 ${gbp.phone}</div>`);
+      else chips.push(`<div class="stat-chip bad">📞 Intet telefonnummer</div>`);
       const ph = gbp.photos || 0;
-      const phCls = ph >= 5 ? 'good' : ph >= 1 ? 'warn' : 'bad';
-      chips.push(`<div class="stat-chip ${phCls}">📷 ${ph} billede${ph === 1 ? '' : 'r'}</div>`);
-
+      chips.push(`<div class="stat-chip ${ph>=5?'good':ph>=1?'warn':'bad'}">📷 ${ph} billede${ph===1?'':'r'}</div>`);
+      if (gbp.category_count !== undefined) {
+        const cats = gbp.categories || [];
+        const catStr = cats.slice(0,2).join(', ') || '—';
+        chips.push(`<div class="stat-chip ${gbp.category_count>=2?'good':gbp.category_count===1?'warn':'bad'}">🏷️ ${gbp.category_count} kategori${gbp.category_count===1?'':'er'}: ${catStr}</div>`);
+      }
       gbpStats.innerHTML = chips.join('');
     }
 
-    // SEO lists (combine gbp + site issues for display)
     const allIssues = [...data.gbp_issues, ...data.site_issues];
     const allPositives = [...data.gbp_positives, ...data.site_positives];
     renderList('siteIssuesList', allIssues, 'issues');
     renderList('sitePositivesList', allPositives, 'positives');
-
     document.getElementById('phonePitchText').textContent = data.phone_pitch;
     document.getElementById('smsPitchText').textContent = data.sms_pitch;
     updateSmsCounter(data.sms_pitch);
-
     document.getElementById('results').classList.add('active');
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
   }
 
+  // ---- LEADS ----
+  async function runLeads() {
+    const service = document.getElementById('serviceInput').value.trim();
+    const location = document.getElementById('locationInput').value.trim();
+    if (!service || !location) { showError('leadsErrorBox', 'Udfyld både fag og by.'); return; }
+    setLoading('leadsLoader', 'leadsBtn', true, 'Søger...');
+    hideError('leadsErrorBox');
+    hideResults('leadsResults');
+    try {
+      const res = await fetch('/find-leads', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({service, location}) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Ukendt fejl');
+      showLeadsResults(data, service, location);
+    } catch(err) { showError('leadsErrorBox', err.message); }
+    finally { setLoading('leadsLoader', 'leadsBtn', false, 'Søg'); }
+  }
+
+  function showLeadsResults(data, service, location) {
+    const noWeb = data.no_website;
+    const total = data.total;
+    document.getElementById('leadsSummary').innerHTML = `
+      <div class="leads-stat red"><div class="num">${noWeb}</div><div class="lbl">Uden hjemmeside</div></div>
+      <div class="leads-stat"><div class="num">${total - noWeb}</div><div class="lbl">Har hjemmeside</div></div>
+      <div class="leads-stat"><div class="num">${total}</div><div class="lbl">Fundet i alt</div></div>
+      <div class="leads-stat green" style="flex:1"><div class="num" style="font-size:1rem;margin-top:4px">${service} i ${location}</div><div class="lbl">Søgning</div></div>
+    `;
+
+    const tbody = document.getElementById('leadsTableBody');
+    if (!data.leads.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="no-leads">Ingen resultater fundet — prøv et andet søgeord eller by.</td></tr>';
+    } else {
+      tbody.innerHTML = data.leads.map(l => `
+        <tr>
+          <td><strong>${l.name}</strong></td>
+          <td style="color:#64748b;font-size:0.82rem">${l.address}</td>
+          <td>${l.phone ? `<a class="phone-link" href="tel:${l.phone}">${l.phone}</a>` : '<span style="color:#94a3b8">—</span>'}</td>
+          <td>${l.rating != null ? `⭐ ${l.rating} (${l.reviews})` : '<span style="color:#94a3b8">Ingen</span>'}</td>
+          <td>${l.has_website
+            ? `<span class="badge has-web">Har side</span>`
+            : `<span class="badge no-web">Ingen hjemmeside</span>`
+          }</td>
+        </tr>
+      `).join('');
+    }
+    document.getElementById('leadsResults').classList.add('active');
+    document.getElementById('leadsResults').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  // ---- HELPERS ----
+  function renderList(id, items, type) {
+    const el = document.getElementById(id);
+    el.innerHTML = items.length
+      ? items.map(i => `<div class="item"><span class="dot">${type==='issues'?'✕':'✓'}</span><span>${i}</span></div>`).join('')
+      : `<div class="item"><span>${type==='issues'?'Ingen problemer':'Ingen noteret'}</span></div>`;
+  }
+
+  function starsHtml(r) { const f=Math.round(r); return '★'.repeat(f)+'☆'.repeat(5-f); }
   function updateSmsCounter(text) {
     const len = text.length;
     const el = document.getElementById('smsCounter');
-    el.textContent = `${len} tegn ${len > 160 ? '⚠️ over 160' : '/ 160'}`;
-    el.className = 'sms-counter' + (len > 160 ? ' over' : '');
+    el.textContent = `${len} tegn ${len>160?'⚠️ over 160':'/ 160'}`;
+    el.className = 'sms-counter' + (len>160?' over':'');
   }
-
-  function copyText(elementId, btnId) {
-    const text = document.getElementById(elementId).textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById(btnId);
-      btn.textContent = 'Kopieret ✓';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'Kopiér'; btn.classList.remove('copied'); }, 2000);
+  function copyText(elId, btnId) {
+    navigator.clipboard.writeText(document.getElementById(elId).textContent).then(() => {
+      const b = document.getElementById(btnId);
+      b.textContent = 'Kopieret ✓'; b.classList.add('copied');
+      setTimeout(() => { b.textContent = 'Kopiér'; b.classList.remove('copied'); }, 2000);
     });
   }
-
-  function setLoading(on) {
-    document.getElementById('loader').classList.toggle('active', on);
-    document.getElementById('analyzeBtn').disabled = on;
-    document.getElementById('analyzeBtn').textContent = on ? 'Analyserer...' : 'Analysér';
+  function setLoading(loaderId, btnId, on, label) {
+    document.getElementById(loaderId).classList.toggle('active', on);
+    const btn = document.getElementById(btnId);
+    btn.disabled = on; btn.textContent = on ? label : (btnId === 'leadsBtn' ? 'Søg' : 'Analysér');
   }
-
-  function showError(msg) {
-    const el = document.getElementById('errorBox');
-    el.textContent = '⚠️ ' + msg;
-    el.classList.add('active');
-  }
-
-  function hideError() { document.getElementById('errorBox').classList.remove('active'); }
-  function hideResults() { document.getElementById('results').classList.remove('active'); }
+  function showError(id, msg) { const el=document.getElementById(id); el.textContent='⚠️ '+msg; el.classList.add('active'); }
+  function hideError(id) { document.getElementById(id).classList.remove('active'); }
+  function hideResults(id) { document.getElementById(id).classList.remove('active'); }
 </script>
 </body>
 </html>
