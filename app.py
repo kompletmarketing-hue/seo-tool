@@ -402,4 +402,13 @@ async def analyze_endpoint(req: AnalyzeRequest):
     }
 
 
+@app.get("/health")
+async def health():
+    return {
+        "anthropic_key_set": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "gmaps_key_set": bool(os.environ.get("GOOGLE_MAPS_API_KEY")),
+        "env_var_names": [k for k in os.environ.keys() if "KEY" in k or "API" in k or "ANTHROPIC" in k],
+    }
+
+
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
