@@ -694,6 +694,62 @@ async def send_sms(req: SmsRequest):
         raise HTTPException(status_code=502, detail=f"Kunne ikke nå SMS API: {e}")
 
 
+async def fetch_pagespeed_full(url: str, strategy: str) -> dict:
+    api = (
+        f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+        f"?url={url}&strategy={strategy}"
+        f"&category=performance&category=accessibility&category=best-practices&category=seo"
+    )
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.get(api)
+        return r.json()
+
+
+def extract_score(data: dict, category: str) -> int | None:
+    try:
+        return int(data["lighthouseResult"]["categories"][category]["score"] * 100)
+    except (KeyError, TypeError):
+        return None
+
+
+def extract_metric(data: dict, audit: str) -> str:
+    try:
+        return data["lighthouseResult"]["audits"][audit]["displayValue"]
+    except (KeyError, TypeError):
+        return "—"
+
+
+@app.get("/pagespeed-details")
+async def pagespeed_details(url: str):
+    mobile_data, desktop_data = await asyncio.gather(
+        fetch_pagespeed_full(url, "mobile"),
+        fetch_pagespeed_full(url, "desktop"),
+        return_exceptions=True,
+    )
+
+    def parse(data):
+        if isinstance(data, Exception):
+            return None
+        return {
+            "performance":     extract_score(data, "performance"),
+            "accessibility":   extract_score(data, "accessibility"),
+            "best_practices":  extract_score(data, "best-practices"),
+            "seo":             extract_score(data, "seo"),
+            "lcp":             extract_metric(data, "largest-contentful-paint"),
+            "fcp":             extract_metric(data, "first-contentful-paint"),
+            "tbt":             extract_metric(data, "total-blocking-time"),
+            "cls":             extract_metric(data, "cumulative-layout-shift"),
+            "speed_index":     extract_metric(data, "speed-index"),
+        }
+
+    return {
+        "url": url,
+        "mobile":  parse(mobile_data),
+        "desktop": parse(desktop_data),
+        "report_url": f"https://pagespeed.web.dev/report?url={url}",
+    }
+
+
 @app.get("/health")
 async def health():
     return {

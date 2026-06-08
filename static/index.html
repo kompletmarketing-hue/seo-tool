@@ -136,6 +136,18 @@
     .modal-send:hover { background: #6d28d9; }
     .modal-send:disabled { background: #c4b5fd; cursor: not-allowed; }
     .modal-status { font-size: 0.85rem; margin-top: 12px; text-align: center; min-height: 20px; }
+
+    .psi-score-circle { display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .psi-circle { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.15rem; font-weight:800; color:white; }
+    .psi-circle.red { background:#f05454; }
+    .psi-circle.orange { background:#f59e0b; }
+    .psi-circle.green { background:#22c55e; }
+    .psi-circle.gray { background:#94a3b8; }
+    .psi-score-label { font-size:0.75rem; color:#64748b; text-align:center; font-weight:600; }
+    .psi-vital-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #e2e8f0; }
+    .psi-vital-row:last-child { border-bottom:none; }
+    .psi-vital-name { color:#64748b; }
+    .psi-vital-value { font-weight:700; color:#1a1a2e; }
   </style>
 </head>
 <body>
@@ -238,6 +250,32 @@
     </div>
   </div>
 
+  <!-- PageSpeed card -->
+  <div id="psiCard" style="display:none; background:white; border-radius:16px; padding:28px; box-shadow:0 2px 12px rgba(0,0,0,0.08); margin-top:24px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+      <h2 style="font-size:1.15rem; font-weight:700;">PageSpeed resultater</h2>
+      <a id="psiReportLink" href="#" target="_blank" style="font-size:0.85rem; color:#2563eb; text-decoration:none; font-weight:600;">Se fuld rapport ↗</a>
+    </div>
+    <div id="psiLoading" style="text-align:center; padding:24px 0; color:#64748b; font-size:0.95rem;">
+      <div class="spinner" style="margin:0 auto 12px;"></div>
+      Henter PageSpeed resultater...
+    </div>
+    <div id="psiContent" style="display:none;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <div>
+          <div style="font-weight:700; font-size:0.95rem; margin-bottom:16px; color:#1a1a2e;">📱 Mobil</div>
+          <div id="psiMobileScores" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;"></div>
+          <div id="psiMobileVitals" style="background:#f8fafc; border-radius:10px; padding:14px; font-size:0.85rem;"></div>
+        </div>
+        <div>
+          <div style="font-weight:700; font-size:0.95rem; margin-bottom:16px; color:#1a1a2e;">🖥️ Desktop</div>
+          <div id="psiDesktopScores" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;"></div>
+          <div id="psiDesktopVitals" style="background:#f8fafc; border-radius:10px; padding:14px; font-size:0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -318,11 +356,13 @@
     setLoading('loader', 'analyzeBtn', true, 'Analyserer...');
     hideError('errorBox');
     hideResults('results');
+    document.getElementById('psiCard').style.display = 'none';
     try {
       const res = await fetch('/analyze', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({url}) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Ukendt fejl');
       showAnalysisResults(data);
+      loadPageSpeed(url);
     } catch(err) { showError('errorBox', err.message); }
     finally { setLoading('loader', 'analyzeBtn', false, 'Analysér'); }
   }
@@ -407,6 +447,54 @@
     updateSmsCounter(data.sms_pitch);
     document.getElementById('results').classList.add('active');
     document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  // ---- PAGESPEED ----
+  function psiScoreColor(score) {
+    if (score === null || score === undefined) return 'gray';
+    if (score >= 90) return 'green';
+    if (score >= 50) return 'orange';
+    return 'red';
+  }
+
+  function renderPsiScores(containerId, scores) {
+    const labels = { performance: 'Ydeevne', accessibility: 'Tilgængelighed', best_practices: 'Best Practices', seo: 'SEO' };
+    const el = document.getElementById(containerId);
+    el.innerHTML = Object.entries(labels).map(([key, label]) => {
+      const v = scores[key];
+      const cls = psiScoreColor(v);
+      const display = v !== null && v !== undefined ? v : '—';
+      return `<div class="psi-score-circle"><div class="psi-circle ${cls}">${display}</div><div class="psi-score-label">${label}</div></div>`;
+    }).join('');
+  }
+
+  function renderPsiVitals(containerId, scores) {
+    const vitals = [
+      ['LCP', scores.lcp], ['FCP', scores.fcp], ['TBT', scores.tbt],
+      ['CLS', scores.cls], ['Speed Index', scores.speed_index]
+    ];
+    const el = document.getElementById(containerId);
+    el.innerHTML = vitals.map(([name, val]) =>
+      `<div class="psi-vital-row"><span class="psi-vital-name">${name}</span><span class="psi-vital-value">${val || '—'}</span></div>`
+    ).join('');
+  }
+
+  async function loadPageSpeed(url) {
+    const card = document.getElementById('psiCard');
+    card.style.display = 'block';
+    document.getElementById('psiLoading').style.display = 'block';
+    document.getElementById('psiContent').style.display = 'none';
+    document.getElementById('psiReportLink').href = `https://pagespeed.web.dev/report?url=${encodeURIComponent(url)}`;
+    try {
+      const res = await fetch(`/pagespeed-details?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      if (data.mobile) { renderPsiScores('psiMobileScores', data.mobile); renderPsiVitals('psiMobileVitals', data.mobile); }
+      if (data.desktop) { renderPsiScores('psiDesktopScores', data.desktop); renderPsiVitals('psiDesktopVitals', data.desktop); }
+      document.getElementById('psiLoading').style.display = 'none';
+      document.getElementById('psiContent').style.display = 'block';
+    } catch(e) {
+      document.getElementById('psiLoading').innerHTML = '<p style="color:#dc2626">Kunne ikke hente PageSpeed data.</p>';
+    }
   }
 
   // ---- LEADS ----
