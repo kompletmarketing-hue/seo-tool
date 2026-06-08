@@ -202,6 +202,7 @@
         Ingen Google Business Profil fundet — virksomheden er usynlig på Google Maps og i lokale søgninger.
       </div>
       <div class="gbp-stats" id="gbpStats"></div>
+      <div id="gbpTips"></div>
     </div>
 
     <div class="grid">
@@ -360,9 +361,12 @@
       gbpStats.innerHTML = chips.join('');
 
       // GBP tips
+      const tipsEl = document.getElementById('gbpTips');
       if (gbp.gbp_tips && gbp.gbp_tips.length) {
         const tipsHtml = gbp.gbp_tips.map(t => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:0.84rem;color:#64748b"><span style="color:#f59e0b;flex-shrink:0">?</span><span>${t}</span></div>`).join('');
-        gbpStats.insertAdjacentHTML('afterend', `<div style="margin-top:4px"><div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;margin-bottom:6px">Tjek manuelt i GBP</div>${tipsHtml}</div>`);
+        tipsEl.innerHTML = `<div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;margin-bottom:6px">Tjek manuelt i GBP</div>${tipsHtml}`;
+      } else {
+        tipsEl.innerHTML = '';
       }
     }
 
