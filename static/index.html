@@ -394,7 +394,7 @@
           <td>${l.phone ? `<a class="phone-link" href="tel:${l.phone}">${l.phone}</a>` : '<span style="color:#94a3b8">—</span>'}</td>
           <td>${l.rating != null ? `⭐ ${l.rating} (${l.reviews})` : '<span style="color:#94a3b8">Ingen</span>'}</td>
           <td>${l.has_website
-            ? `<span class="badge has-web">Har side</span>`
+            ? `<a href="${l.website}" target="_blank" rel="noopener" class="badge has-web" style="text-decoration:none">Har side ↗</a>`
             : `<span class="badge no-web">Ingen hjemmeside</span>`
           }</td>
         </tr>
