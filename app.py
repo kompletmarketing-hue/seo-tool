@@ -695,14 +695,11 @@ async def send_sms(req: SmsRequest):
 
 
 async def fetch_pagespeed_full(url: str, strategy: str) -> dict:
-    key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
     params = {
         "url": url,
         "strategy": strategy,
         "category": ["performance", "accessibility", "best-practices", "seo"],
     }
-    if key:
-        params["key"] = key
     async with httpx.AsyncClient(timeout=60) as client:
         r = await client.get(
             "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
