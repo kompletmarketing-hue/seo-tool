@@ -341,6 +341,7 @@
       gbpTitle.textContent = 'Ingen Google Business Profil';
       gbpSubtitle.textContent = 'Virksomheden er ikke synlig på Google Maps';
       gbpNotFound.style.display = 'block'; gbpStats.innerHTML = '';
+      document.getElementById('gbpTips').innerHTML = '';
     } else {
       gbpIcon.className = 'gbp-icon found'; gbpIcon.textContent = '✓';
       gbpTitle.textContent = gbp.name || 'Google Business Profil fundet';
