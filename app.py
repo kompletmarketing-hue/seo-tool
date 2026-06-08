@@ -64,10 +64,16 @@ async def fetch_page(url: str) -> str:
 
 
 async def get_pagespeed(url: str) -> dict:
-    api = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&strategy=mobile"
+    key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+    params: dict = {"url": url, "strategy": "mobile"}
+    if key:
+        params["key"] = key
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.get(api)
+            r = await client.get(
+                "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+                params=params,
+            )
             return r.json()
     except Exception:
         return {}
@@ -695,11 +701,14 @@ async def send_sms(req: SmsRequest):
 
 
 async def fetch_pagespeed_full(url: str, strategy: str) -> dict:
-    params = {
+    key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+    params: dict = {
         "url": url,
         "strategy": strategy,
         "category": ["performance", "accessibility", "best-practices", "seo"],
     }
+    if key:
+        params["key"] = key
     async with httpx.AsyncClient(timeout=60) as client:
         r = await client.get(
             "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
