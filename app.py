@@ -695,14 +695,23 @@ async def send_sms(req: SmsRequest):
 
 
 async def fetch_pagespeed_full(url: str, strategy: str) -> dict:
-    api = (
-        f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-        f"?url={url}&strategy={strategy}"
-        f"&category=performance&category=accessibility&category=best-practices&category=seo"
-    )
+    key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+    params = {
+        "url": url,
+        "strategy": strategy,
+        "category": ["performance", "accessibility", "best-practices", "seo"],
+    }
+    if key:
+        params["key"] = key
     async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.get(api)
-        return r.json()
+        r = await client.get(
+            "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+            params=params,
+        )
+        data = r.json()
+        if "lighthouseResult" not in data:
+            raise ValueError(f"No lighthouseResult: {data.get('error', {}).get('message', 'unknown')}")
+        return data
 
 
 def extract_score(data: dict, category: str) -> int | None:
@@ -729,7 +738,7 @@ async def pagespeed_details(url: str):
 
     def parse(data):
         if isinstance(data, Exception):
-            return None
+            return {"error": str(data)}
         return {
             "performance":     extract_score(data, "performance"),
             "accessibility":   extract_score(data, "accessibility"),
@@ -742,10 +751,14 @@ async def pagespeed_details(url: str):
             "speed_index":     extract_metric(data, "speed-index"),
         }
 
+    mobile = parse(mobile_data)
+    desktop = parse(desktop_data)
     return {
         "url": url,
-        "mobile":  parse(mobile_data),
-        "desktop": parse(desktop_data),
+        "mobile":  None if mobile.get("error") else mobile,
+        "desktop": None if desktop.get("error") else desktop,
+        "mobile_error":  mobile.get("error"),
+        "desktop_error": desktop.get("error"),
         "report_url": f"https://pagespeed.web.dev/report?url={url}",
     }
 

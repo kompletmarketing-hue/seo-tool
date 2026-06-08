@@ -489,11 +489,13 @@
       const res = await fetch(`/pagespeed-details?url=${encodeURIComponent(url)}`);
       const data = await res.json();
       if (data.mobile) { renderPsiScores('psiMobileScores', data.mobile); renderPsiVitals('psiMobileVitals', data.mobile); }
+      else { document.getElementById('psiMobileScores').innerHTML = `<p style="color:#dc2626;font-size:0.85rem;grid-column:span 2">${data.mobile_error || 'Ingen data'}</p>`; }
       if (data.desktop) { renderPsiScores('psiDesktopScores', data.desktop); renderPsiVitals('psiDesktopVitals', data.desktop); }
+      else { document.getElementById('psiDesktopScores').innerHTML = `<p style="color:#dc2626;font-size:0.85rem;grid-column:span 2">${data.desktop_error || 'Ingen data'}</p>`; }
       document.getElementById('psiLoading').style.display = 'none';
       document.getElementById('psiContent').style.display = 'block';
     } catch(e) {
-      document.getElementById('psiLoading').innerHTML = '<p style="color:#dc2626">Kunne ikke hente PageSpeed data.</p>';
+      document.getElementById('psiLoading').innerHTML = `<p style="color:#dc2626">Fejl: ${e.message}</p>`;
     }
   }
 
