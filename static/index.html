@@ -115,9 +115,27 @@
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
     .badge.no-web { background: #fef2f2; color: #dc2626; }
     .badge.has-web { background: #f0fdf4; color: #16a34a; }
-    .phone-link { color: #2563eb; text-decoration: none; font-weight: 600; }
+    .phone-link { color: #2563eb; text-decoration: none; font-weight: 600; cursor: pointer; }
     .phone-link:hover { text-decoration: underline; }
     .no-leads { text-align: center; padding: 40px; color: #94a3b8; }
+
+    /* SMS Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 460px; margin: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .modal .modal-to { font-size: 0.85rem; color: #64748b; margin-bottom: 18px; }
+    .modal textarea { width: 100%; border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 0.95rem; font-family: inherit; resize: vertical; min-height: 110px; outline: none; transition: border-color 0.2s; }
+    .modal textarea:focus { border-color: #7c3aed; }
+    .modal-counter { text-align: right; font-size: 0.78rem; color: #94a3b8; margin-top: 6px; margin-bottom: 16px; }
+    .modal-counter.over { color: #dc2626; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-cancel { padding: 10px 20px; border: 1.5px solid #e2e8f0; background: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; color: #475569; }
+    .modal-cancel:hover { background: #f8fafc; }
+    .modal-send { padding: 10px 24px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+    .modal-send:hover { background: #6d28d9; }
+    .modal-send:disabled { background: #c4b5fd; cursor: not-allowed; }
+    .modal-status { font-size: 0.85rem; margin-top: 12px; text-align: center; min-height: 20px; }
   </style>
 </head>
 <body>
@@ -260,6 +278,21 @@
 </div>
 </div>
 
+<!-- SMS Modal -->
+<div class="modal-overlay" id="smsModal">
+  <div class="modal">
+    <h3>💬 Send SMS</h3>
+    <div class="modal-to" id="smsModalTo"></div>
+    <textarea id="smsModalText" placeholder="Skriv din besked her..." oninput="updateModalCounter()"></textarea>
+    <div class="modal-counter" id="modalCounter">0 tegn</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeSmsModal()">Annuller</button>
+      <button class="modal-send" id="modalSendBtn" onclick="sendSms()">Send SMS</button>
+    </div>
+    <div class="modal-status" id="modalStatus"></div>
+  </div>
+</div>
+
 <script>
   // Tab-skift
   function switchTab(name) {
@@ -391,7 +424,7 @@
         <tr>
           <td><strong>${l.name}</strong></td>
           <td style="color:#64748b;font-size:0.82rem">${l.address}</td>
-          <td>${l.phone ? `<a class="phone-link" href="tel:${l.phone}">${l.phone}</a>` : '<span style="color:#94a3b8">—</span>'}</td>
+          <td>${l.phone ? `<span class="phone-link" onclick="openSmsModal('${l.phone}', '${l.name.replace(/'/g,"\\'")}')">💬 ${l.phone}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
           <td>${l.rating != null ? `⭐ ${l.rating} (${l.reviews})` : '<span style="color:#94a3b8">Ingen</span>'}</td>
           <td>${l.has_website
             ? `<a href="${l.website}" target="_blank" rel="noopener" class="badge has-web" style="text-decoration:none">Har side ↗</a>`
@@ -426,6 +459,73 @@
       setTimeout(() => { b.textContent = 'Kopiér'; b.classList.remove('copied'); }, 2000);
     });
   }
+  // ---- SMS MODAL ----
+  let _smsPhone = '';
+
+  function formatPhone(raw) {
+    // Fjern alt undtagen cifre, tilføj 45 foran
+    const digits = raw.replace(/\D/g, '');
+    return digits.startsWith('45') ? digits : '45' + digits;
+  }
+
+  function openSmsModal(phone, name) {
+    _smsPhone = phone;
+    document.getElementById('smsModalTo').textContent = `Til: ${name} — ${phone}`;
+    document.getElementById('smsModalText').value = '';
+    document.getElementById('modalStatus').textContent = '';
+    document.getElementById('modalStatus').style.color = '';
+    document.getElementById('modalSendBtn').disabled = false;
+    updateModalCounter();
+    document.getElementById('smsModal').classList.add('active');
+    document.getElementById('smsModalText').focus();
+  }
+
+  function closeSmsModal() {
+    document.getElementById('smsModal').classList.remove('active');
+  }
+
+  function updateModalCounter() {
+    const len = document.getElementById('smsModalText').value.length;
+    const el = document.getElementById('modalCounter');
+    el.textContent = `${len} tegn / 160`;
+    el.className = 'modal-counter' + (len > 160 ? ' over' : '');
+  }
+
+  async function sendSms() {
+    const msg = document.getElementById('smsModalText').value.trim();
+    if (!msg) return;
+    const to = formatPhone(_smsPhone);
+    const btn = document.getElementById('modalSendBtn');
+    const status = document.getElementById('modalStatus');
+    btn.disabled = true;
+    btn.textContent = 'Sender...';
+    status.textContent = '';
+    try {
+      const url = `https://xn--hndvrkerregistret-8qbw.dk/wp-json/custom/v1/send-sms?user_id=1&to=${encodeURIComponent(to)}&message=${encodeURIComponent(msg)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        status.textContent = '✓ SMS sendt!';
+        status.style.color = '#16a34a';
+        setTimeout(() => closeSmsModal(), 1500);
+      } else {
+        throw new Error(`Fejl: ${res.status}`);
+      }
+    } catch(err) {
+      status.textContent = '⚠️ ' + err.message;
+      status.style.color = '#dc2626';
+      btn.disabled = false;
+      btn.textContent = 'Send SMS';
+    }
+  }
+
+  // Luk modal ved klik udenfor
+  document.getElementById('smsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSmsModal();
+  });
+
+  // Luk modal med Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSmsModal(); });
+
   function setLoading(loaderId, btnId, on, label) {
     document.getElementById(loaderId).classList.toggle('active', on);
     const btn = document.getElementById(btnId);
