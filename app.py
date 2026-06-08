@@ -599,6 +599,8 @@ async def analyze_endpoint(req: AnalyzeRequest):
         "design": design,
         "phone_pitch": phone,
         "sms_pitch": sms,
+        "contact_phone": gbp_summary.get("phone", ""),
+        "contact_name": gbp_summary.get("name", "") or page_title,
     }
 
 

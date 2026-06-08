@@ -230,6 +230,10 @@
       </div>
       <div class="pitch-text" id="smsPitchText"></div>
       <div class="sms-counter" id="smsCounter"></div>
+      <div id="sendSmsWrap" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <span id="sendSmsPhone" style="font-size:0.88rem; color:#64748b;"></span>
+        <button class="btn" style="padding:10px 20px; font-size:0.9rem; background:#7c3aed;" id="sendSmsBtn" onclick="sendSmsFromAnalysis()">💬 Send SMS til virksomhed</button>
+      </div>
     </div>
   </div>
 
@@ -382,6 +386,17 @@
       }
     }
 
+    // SMS-knap under SMS-pitch
+    const wrap = document.getElementById('sendSmsWrap');
+    if (data.contact_phone) {
+      document.getElementById('sendSmsPhone').textContent = `📞 ${data.contact_phone}`;
+      wrap.style.display = 'flex';
+      wrap._phone = data.contact_phone;
+      wrap._name = data.contact_name || data.domain;
+    } else {
+      wrap.style.display = 'none';
+    }
+
     document.getElementById('phonePitchText').textContent = data.phone_pitch;
     document.getElementById('smsPitchText').textContent = data.sms_pitch;
     updateSmsCounter(data.sms_pitch);
@@ -468,10 +483,16 @@
     return digits.startsWith('45') ? digits : '45' + digits;
   }
 
-  function openSmsModal(phone, name) {
+  function sendSmsFromAnalysis() {
+    const wrap = document.getElementById('sendSmsWrap');
+    const smsText = document.getElementById('smsPitchText').textContent;
+    openSmsModal(wrap._phone, wrap._name, smsText);
+  }
+
+  function openSmsModal(phone, name, prefill) {
     _smsPhone = phone;
     document.getElementById('smsModalTo').textContent = `Til: ${name} — ${phone}`;
-    document.getElementById('smsModalText').value = '';
+    document.getElementById('smsModalText').value = prefill || '';
     document.getElementById('modalStatus').textContent = '';
     document.getElementById('modalStatus').style.color = '';
     document.getElementById('modalSendBtn').disabled = false;
