@@ -501,14 +501,18 @@
     btn.textContent = 'Sender...';
     status.textContent = '';
     try {
-      const url = `https://xn--hndvrkerregistret-8qbw.dk/wp-json/custom/v1/send-sms?user_id=1&to=${encodeURIComponent(to)}&message=${encodeURIComponent(msg)}`;
-      const res = await fetch(url);
+      const res = await fetch('/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, message: msg })
+      });
       if (res.ok) {
         status.textContent = '✓ SMS sendt!';
         status.style.color = '#16a34a';
         setTimeout(() => closeSmsModal(), 1500);
       } else {
-        throw new Error(`Fejl: ${res.status}`);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fejl: ${res.status}`);
       }
     } catch(err) {
       status.textContent = '⚠️ ' + err.message;

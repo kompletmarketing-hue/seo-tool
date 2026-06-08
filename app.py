@@ -668,6 +668,33 @@ async def find_leads(req: LeadRequest):
     return {"leads": leads, "total": len(leads), "no_website": sum(1 for l in leads if not l["has_website"])}
 
 
+class SmsRequest(BaseModel):
+    to: str
+    message: str
+
+
+@app.post("/send-sms")
+async def send_sms(req: SmsRequest):
+    # Formater nummer: kun cifre, 45 foran
+    digits = re.sub(r"\D", "", req.to)
+    if not digits.startswith("45"):
+        digits = "45" + digits
+
+    url = (
+        f"https://xn--hndvrkerregistret-8qbw.dk/wp-json/custom/v1/send-sms"
+        f"?user_id=1&to={digits}&message={req.message}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(url)
+            if r.status_code == 200:
+                return {"ok": True}
+            else:
+                raise HTTPException(status_code=r.status_code, detail=f"SMS API svarede: {r.status_code} — {r.text[:200]}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Kunne ikke nå SMS API: {e}")
+
+
 @app.get("/health")
 async def health():
     return {
