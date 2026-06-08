@@ -680,13 +680,10 @@ async def send_sms(req: SmsRequest):
     if not digits.startswith("45"):
         digits = "45" + digits
 
-    url = (
-        f"https://xn--hndvrkerregistret-8qbw.dk/wp-json/custom/v1/send-sms"
-        f"?user_id=1&to={digits}&message={req.message}"
-    )
+    url = "https://xn--hndvrkerregistret-8qbw.dk/wp-json/custom/v1/send-sms"
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.get(url)
+            r = await client.post(url, params={"user_id": 1, "to": digits, "message": req.message})
             if r.status_code == 200:
                 return {"ok": True}
             else:
