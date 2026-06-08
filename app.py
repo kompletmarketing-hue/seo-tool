@@ -503,7 +503,7 @@ Skriv to ting:
    - Slutte med ét åbent spørgsmål der inviterer til dialog
    - Lyde naturligt og venligt — ikke som en robot eller salgsscript
 
-2. SMS: Max 155 tegn. Kort og direkte. Brug firmanavnet "{display_name}" (IKKE domænet/URL). Nævn at vi har kigget på deres hjemmeside. Ikke spam-agtigt.
+2. SMS: Max 155 tegn. Kort og direkte. Brug firmanavnet "{display_name}" (IKKE domænet/URL). Nævn at vi har kigget på deres hjemmeside. Ingen emojis. Ikke spam-agtigt.
 
 Format — brug præcis disse overskrifter:
 TELEFON-PITCH:
